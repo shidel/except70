@@ -11,16 +11,16 @@
 
 unit Except;
 
-{$G-}       (* 8086/8087 compatible *)
-{$A+,B-}    (* Byte alignment, short-circut boolean *)
-{$E-,N-}    (* No Emulation, No coprocessor *)
-{$F+,O-}    (* Farcalls and no overlays *)
-{$R-,Q-,S-} (* No range, no overflow and no stack checking *)
-{$I-}       (* No I/O checking *)
-{$D-,L-,Y-} (* No Debug, no label and no symbol information *)
-{$P-,V+}    (* OpenString parameters, with strict type-checking *)
-{$T-}       (* No type-checked pointers *)
-{$X+}       (* Enable extended syntax *)
+  {$G-}       (* 8086/8087 compatible *)
+  {$A+,B-}    (* Byte alignment, short-circut boolean *)
+  {$E-,N-}    (* No Emulation, No coprocessor *)
+  {$F+,O-}    (* Farcalls and no overlays *)
+  {$R-,Q-,S-} (* No range, no overflow and no stack checking *)
+  {$I-}       (* No I/O checking *)
+  {$D-,L-,Y-} (* No Debug, no label and no symbol information *)
+  {$P-,V+}    (* OpenString parameters, with strict type-checking *)
+  {$T-}       (* No type-checked pointers *)
+  {$X+}       (* Enable extended syntax *)
 
 interface
 
@@ -132,6 +132,7 @@ begin
     end;
 end;
 
+
 procedure Finalize; far;
 begin
   ExitProc:=OldExit;
@@ -197,14 +198,13 @@ end;
 
 procedure Try(OnException : pointer); assembler;
 asm
-  call		Exception_Clear;
+  call		Exception_Clear
   mov   	ax, Index
   cmp		ax, Maximum
   jb		@@1
   jmp 		IndexOverflow
 @@1:
   inc		Index
-  mov		cx, bp
   push		bp
   mov		bp, sp
   { Set record pointer }
@@ -220,15 +220,19 @@ asm
   mov		[es:di], ax
   mov		[es:di + 2], dx
   { Save Stack Pointers }
-  add 		cx, 10
+  mov		bx, [ss:bp]
+  mov		cx, [ss:bx]
   mov		[es:di + 4], cx
   pop		bp
 end;
 
-procedure Done;
-begin
-  if Index = 0 then IndexUnderflow;
-  Dec(Index);
+procedure Done; assembler;
+asm
+  cmp		Index, 0
+  jne		@@1
+  call		IndexUnderFlow
+@@1:
+  dec		Index
 end;
 
 procedure Raise; assembler;

@@ -1,5 +1,18 @@
 program Exception_Demo_3;
 
+{$IFDEF PREFERED}
+  {$G-}       (* 8086/8087 compatible *)
+  {$A+,B-}    (* Byte alignment, short-circut boolean *)
+  {$E-,N-}    (* No Emulation, No coprocessor *)
+  {$F+,O-}    (* Farcalls and no overlays *)
+  {$R-,Q-,S-} (* No range, no overflow and no stack checking *)
+  {$I-}       (* No I/O checking *)
+  {$D-,L-,Y-} (* No Debug, no label and no symbol information *)
+  {$P-,V+}    (* OpenString parameters, with strict type-checking *)
+  {$T-}       (* No type-checked pointers *)
+  {$X+}       (* Enable extended syntax *)
+{$ENDIF}
+
 uses Except;
 
 procedure Failed(const S : String; U : boolean);
@@ -14,7 +27,7 @@ begin
   { Now, we will raise an exception in the parent. Since, there is no user defined
     parent TRY/DONE, it will trigger the default exception handler in the EXCEPT.PAS
     unit and terminate the program. }
-  RaiseError(7, 'abort!');
+  { RaiseError(7, 'abort!'); }
 end;
 
 procedure Print_Message(const S : String);
