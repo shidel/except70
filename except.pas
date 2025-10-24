@@ -24,50 +24,131 @@ unit Except;
 
 interface
 
+  type
+    TException = record
+      Error : integer;
+      Address : pointer;
+      Message : String;
+    end;
+
+  var
+    Exception : TException;
+
   procedure Try(OnException : pointer);
   procedure Done;
   procedure Raise; { could pass an error code or message here }
+  procedure RaiseError(Error : integer; Message : String);
 
+  procedure Exception_Display;
   procedure Exception_Memory(MaxEntries : word);
 
 implementation
 
 type
-  TException = record
+  THandler = record
     OnExcept : pointer;
     Reg_SP	 : word;
   end;
-  TExceptions = array[0..$fff] of TException;
-  PExceptions = ^TExceptions;
+  THandlers = array[0..$fff] of THandler;
+  PHandlers = ^THandlers;
+  Str2 = String[2];
+  Str4 = String[4];
+  Str9 = String[9];
 
 var
   OldExit    : pointer;
 
-  Exceptions : PExceptions;
+  Exceptions : PHandlers;
   Maximum	 : word;
   Index		 : word;
 
 const
-  Exception_Size = Sizeof(TException);
+  Handler_Size = Sizeof(THandler);
   Jump_Offset = 3;
-  ExceptStr {: String[18]} = 'Exception ';
+  ExceptStr : String[9] = 'exception';
+  HexDigits : String[16] = '0123456789ABCDEF';
+
+function HexByte(B : byte) : Str2;
+begin
+  HexByte:=HexDigits[1 + (B shr 4)] + HexDigits[1 + (B and 15)];
+end;
+
+function HexWord(W : Word) : Str4;
+begin
+  HexWord:=HexByte(Hi(W)) + HexByte(Lo(W));
+end;
+
+function HexPtr(P : Pointer) : Str9;
+begin
+  HexPtr:=HexWord(Seg(P^)) + ':' + HexWord(Ofs(P^));
+end;
+
+procedure Exception_Display;
+begin
+  with Exception do begin
+    if (not Assigned(Address)) and (Error = 0)  and (Message = '') then begin
+      WriteLn('no ' + ExceptStr);
+      exit;
+    end;
+    WriteLn(ExceptStr, ' #', Error, ' at ', HexPtr(Address));
+    if Exception.Message <> '' then
+      WriteLn(Exception.Message);
+  end;
+end;
+
+procedure Exception_Clear;
+begin
+  Exception.Error := 0;
+  Exception.Address := nil;
+  Exception.Message := '';
+end;
+
+procedure Exception_Set(Address : Pointer; Error : integer; const Message : String);
+begin
+  Exception.Error := Error;
+  Exception.Address := Address;
+  Exception.Message := Message;
+end;
+
+procedure Exception_Die(Address : Pointer; Error : integer; const Message : String);
+begin
+  Exception.Error := Error;
+  Exception.Address := Address;
+  Exception.Message := Message;
+  Exception_Display;
+  Halt(Error);
+end;
+
+procedure Program_Die;
+begin
+  with Exception do begin
+      if Error = 0 then Error:=ExitCode;
+      if Error = 0 then Error := 1;
+      Address:=nil;
+      if Message = '' then
+        Message:='fatal exception';
+      Exception_Display;
+      Halt(Error);
+    end;
+end;
 
 procedure Finalize; far;
 begin
   ExitProc:=OldExit;
-  { Check that no there were no missing Done procedures }
-  if Index = 0 then Exit;
   { Only check if Try/Done blocks are balanced when terminating without an
     Error Code. }
   if ExitCode <> 0 then Exit;
-  WriteLn(ExceptStr + ' unbalanced');
-  RunError(200); { Divide by zero }
+  { Check that no there were no missing Done procedures }
+  if Index <= 1 then Exit;
+  { Divide by zero }
+  Exception_Die(nil, 200, 'unbalanced exception handler, missing done');
 end;
 
 procedure Initialize;
 begin
   OldExit:=ExitProc;
   ExitProc:=@Finalize;
+  Exception_Clear;
   Exceptions:=nil;
   Maximum:=0;
   Index:=0;
@@ -76,40 +157,47 @@ end;
 
 procedure Exception_Memory(MaxEntries : word);
 begin
+  if MaxEntries = Maximum then Exit;
   { If any exceptions are present, prohibit changing the amount of memory allocated.
     It could be done. But, I'm to lazy to check if there is sufficient memory or
     to bother copying the data from the old table over to the new table. }
-  if Index <> 0 then RunError(204); { Invalid pointer Operation }
+  if Index > 1 then
+    { Invalid pointer Operation }
+    Exception_Die(nil, 204, 'cannot reallocate exception handler memory now');
   { Release old table if it exists }
-  if Assigned(Exceptions) then FreeMem(Exceptions, Sizeof(TExceptions) * Maximum);
+  if Assigned(Exceptions) then FreeMem(Exceptions, Sizeof(THandlers) * Maximum);
   Exceptions:=nil;
   Maximum:=MaxEntries;
   if Maximum= 0 then Exit;
   if (Maximum > $fff) then begin
-    WriteLn(ExceptStr + 'invalid request');
-    RunError(201); { Range Check Error }
+ 	 { Range Check Error }
+     Exception_Die(nil, 201, 'invalid memory request to exception handler');
   end;
-  if MaxAvail <= Maximum * SizeOf(TException) then begin
-    WriteLn(ExceptStr + 'insufficient memory for exception handler');
-    RunError(8); { Insufficient memory }
+  if MaxAvail <= Maximum * SizeOf(THandler) then begin
+    { Insufficient memory }
+    Exception_Die(nil, 8, 'insufficient memory for exception handlers');
   end;
-  GetMem(Exceptions, Maximum * SizeOf(TException));
+  GetMem(Exceptions, Maximum * SizeOf(THandler));
+  try(@Program_Die);
 end;
 
 procedure IndexOverflow;
 begin
-  WriteLn(ExceptStr +'overflow');
-  RunError(202);  { Stack Overflow. Maybe use 203 for heap overflow. Or, 201 Range Check}
+  { Stack Overflow. }
+  Exception_Die(nil, 202, 'exception handler exceeded memory capacity');
+  { Maybe use 203 for heap overflow. Or, 201 Range Check}
 end;
 
 procedure IndexUnderflow;
 begin
-  WriteLn(ExceptStr + 'underflow');
-  RunError(211);  { Call to abstract method. Maybe use error 203 or 201 }
+  { Call to abstract method. }
+  Exception_Die(nil, 211, 'exception handler underflow, no matching try');
+  { Maybe use error 203 or 201 }
 end;
 
 procedure Try(OnException : pointer); assembler;
 asm
+  call		Exception_Clear;
   mov   	ax, Index
   cmp		ax, Maximum
   jb		@@1
@@ -120,7 +208,7 @@ asm
   push		bp
   mov		bp, sp
   { Set record pointer }
-  mov		dx, Exception_Size
+  mov		dx, Handler_Size
   mul		dx
   les		di, Exceptions
   add		di, ax
@@ -153,7 +241,7 @@ asm
   dec		ax
   mov		Index, ax
   { Set record pointer }
-  mov		dx, Exception_Size
+  mov		dx, Handler_Size
   mul		dx
   les		di, Exceptions
   add		di, ax
@@ -161,6 +249,14 @@ asm
   mov		bp, [es:di+4]
   mov		sp, bp
   jmp dword ptr [es:di]
+end;
+
+procedure RaiseError(Error : integer; Message : String);
+begin
+  Exception.Error:=Error;
+  Exception.Message:=Message;
+  Exception.Address:=nil;
+  raise;
 end;
 
 begin
