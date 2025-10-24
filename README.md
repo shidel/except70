@@ -1,7 +1,7 @@
 # Except70
 
 Providing very basic and limited exception support for Turbo Pascal 7.0 programs.
-(Highly experimental and not ready for prime time!)
+(Highly experimental and likely not ready for prime time!)
 
 ## Usage and limitations
 
