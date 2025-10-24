@@ -14,8 +14,6 @@ begin
 end;
 
 procedure SayHello;
-{ Since this procedure includes a TRY/DONE block, it cannot have any local variables
-  at this time. Hopefully, that issue can be overcome at some point. }
 begin
   try(@EFailed);
     WriteLn('Hello');

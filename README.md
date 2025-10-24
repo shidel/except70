@@ -33,9 +33,4 @@ released as needed. Yes, it could grow or shrink. But, both will cause fragmenti
 heap of you use it for storage of other data. It's best to just set your capacity once
 at the beginning of the program and forget about it.
 
-At this time...
-
-A procedure or function which contains the TRY and DONE procedures must not
-have any local variables.
-
-Highly experimental and not ready for production usage.
+At this time, more testing needs done.

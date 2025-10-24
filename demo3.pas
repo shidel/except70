@@ -52,12 +52,15 @@ begin
 end;
 
 procedure Message(const S : String; U : Boolean);
+var
+  I : integer;
 begin
   try(@Failed);
-    if U then
-      Print_Message(UpperCase(S))
-    else
-      Print_Message(S);
+    for I := 0 to 5 do
+      if U then
+        Print_Message(UpperCase(S))
+     else
+        Print_Message(S);
   done;
 end;
 
