@@ -5,7 +5,8 @@
 
   History:
 
-  2025-10-24 Jerome Shidel, Seems to be working, more testing needed.
+  2025-10-24 Jerome Shidel, Added Attempt function.
+  2025-10-24 Jerome Shidel, Seems to be working now.
   2025-10-23 Jerome Shidel, Initial highly experimental version.
 
 *)
@@ -26,6 +27,7 @@ unit Except;
 interface
 
   type
+    TProcedure = procedure;
     TException = record
       Error : integer;
       Address : pointer;
@@ -35,12 +37,16 @@ interface
   var
     Exception : TException;
 
+  function Attempt(Proc : TProcedure) : integer;
+
   procedure Try(OnException : pointer);
   procedure Done;
-  procedure Raise; { could pass an error code or message here }
+
+  procedure Raise;
   procedure RaiseError(Error : integer; Message : String);
 
   procedure Exception_Display;
+
   procedure Exception_Memory(MaxEntries : word);
 
 implementation
@@ -262,6 +268,21 @@ begin
   Exception.Message:=Message;
   Exception.Address:=nil;
   raise;
+end;
+
+function FailProc(Proc : TProcedure) : integer;
+begin
+  if Exception.Error = 0 then
+    Exception.Error:=1;
+  FailProc:=Exception.Error;
+end;
+
+function Attempt(Proc : TProcedure) : integer;
+begin
+  try(@FailProc);
+    Proc;
+  done;
+  Attempt:=0;
 end;
 
 begin

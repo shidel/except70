@@ -33,4 +33,11 @@ released as needed. Yes, it could grow or shrink. But, both will cause fragmenti
 heap of you use it for storage of other data. It's best to just set your capacity once
 at the beginning of the program and forget about it.
 
+There is also a simple ATTEMPT function. You can provide it the address of a procedure
+which takes no parameters. You must either have the {$F+} compiler directive enabled or
+declare the procedure with the FAR keyword. The unit will wrap that procedure in a
+TRY/DONE block and execute it. If no exception occurs, the ATTEMPT function will return
+a zero. If an exception occurs, it will return the exception error number (or 1 when not
+assigned a value).
+
 At this time, more testing needs done.
