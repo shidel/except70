@@ -22,6 +22,7 @@ procedure Test_A; far;
 begin
   WriteLn('Analyzing conditions...');
   Test_C;
+  WriteLn('Looks good.');
 end;
 
 begin
