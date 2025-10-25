@@ -16,7 +16,7 @@ program Exception_Demo_3;
 uses Except;
 
 procedure Failed(const S : String; U : boolean);
-{ Exception handler must have the sane parameters and calling convention as the
+{ Exception handler must have the same parameters and calling convention as the
   procedure or function that contains the TRY/DONE block that assigns the handler. }
 begin
   if Exception.Error = 1 then begin
@@ -24,7 +24,7 @@ begin
     WriteLn('original string: ', S);
   end else
     Exception_Display;
-  { Now, we will raise an exception in the parent. Since, there is no user defined
+  { Now, we can raise an exception in the parent. Since, there is no user defined
     parent TRY/DONE, it will trigger the default exception handler in the EXCEPT.PAS
     unit and terminate the program. }
   { RaiseError(7, 'abort!'); }

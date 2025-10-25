@@ -28,7 +28,7 @@ end;
 begin
   case Attempt(Test_A) of
     0 : WriteLn('Success');
-    99 : WriteLn('flock of birds error');
+    99 : WriteLn('flock of 99 birds, should be ballons');
   else
      WriteLn('Error: #', Exception.Error, ', ', Exception.Message);
   end;
