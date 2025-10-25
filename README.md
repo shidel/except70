@@ -13,33 +13,33 @@ the exception handler. The exception must have the exact same parameters and cal
 convention (near or far) as the procedure or function in which the TRY procedure is used
 to assign the exception handler.
 
-You can then use RAISE to in any function or procedure at any level of nesting or
-recursion that is called by the code that contains the TRY-DONE to break immediately out
-to the assigned acception handler.
+You can then use RAISE in any function or procedure at any level of nesting or recursion
+that is called by the code that contains the TRY-DONE. It will immediately break out to
+the assigned acception handler.
 
 You cannot nest TRY/DONE within the same procedure/function. You need to provide a
 new function/procedure that has its own TRY-DONE and EXCEPTION handler.
 
 You can use TRY/DONE/RAISE inside procedures or functions which already have an
 assigned exception handler. Therefore in such a sub-function, you can raise an error.
-Then, in its exception handler either process and ignore it. Or, raise another exception
-to trigger the parent exception handler.
+Then in its exception handler, either process or ignore it. Or even, raise another
+exception to trigger the parent's exception handler.
 
-The EXCEPTION information record is clear when the TRY procedure is used to assign the
-handler. Therefore, if you want to use a TRY-DONE within an exception handler to process
-an exception, you will likely want to copy the EXCEPTION record to retain its information
-before you start a new TRY-DONE block.
+The EXCEPTION information record is cleared whenever a TRY procedure is used to assign an
+exception handler. Therefore, if you want to use a TRY-DONE within an exception handler
+to process the error of an exception, you will likely want to copy the EXCEPTION record
+to retain its information before you start a new TRY-DONE block.
 
 You are only permitted to adjust the memory allocated for nesting exception handlers when
-not within any TRY-DONE blocks (Excluding the primary TRY-DONE that is defined byte the
+not within any TRY-DONE blocks (Excluding the primary TRY-DONE that is defined inside the
 EXCEPT.PAS unit itself and will terminate a program). The memory for the handlers
 is allocated on the heap in a single block to prevent memory fragmentation. The default
 of the unit is to allocate enough memory for 64 nested handlers. That "should" be plenty
 for a well structured program. But if you may need more, you can increase it before you
 start using TRY-DONE to handle additional exceptions. Yes, they could be allocated and
-released as needed. Yes, it could grow or shrink. But, both will cause fragmenting of the
-heap of you use it for storage of other data. It's best to just set your capacity once
-at the beginning of the program and forget about it.
+released as needed. Yes, it could grow or shrink. But, both would cause heap
+fragmentation. It's best to just set your capacity once at the beginning of the program
+and forget about it.
 
 There is also a simple ATTEMPT function. You can provide it the address of a procedure
 which takes no parameters. You must either have the {$F+} compiler directive enabled or
