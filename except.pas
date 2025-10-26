@@ -47,7 +47,6 @@ interface
 
   procedure Exception_Memory(MaxEntries : word);
   procedure Exception_Display;
-  procedure Exception_Create;
 
 implementation
 
@@ -117,7 +116,6 @@ procedure Exception_Clear;
 begin
   Exception_Set(nil, 0, '');
 end;
-
 
 procedure Exception_Die(Address : Pointer; Error : integer; const Message : String);
 begin
@@ -241,7 +239,7 @@ asm
   dec		Index
 end;
 
-procedure Exception_Create; assembler;
+procedure Exception_Create; far; assembler;
 asm
   mov   	ax, Index
   test		ax, ax
