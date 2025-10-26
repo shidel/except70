@@ -45,9 +45,9 @@ interface
   procedure Raise;
   procedure RaiseError(Error : integer; Message : String);
 
-  procedure Exception_Display;
-
   procedure Exception_Memory(MaxEntries : word);
+  procedure Exception_Display;
+  procedure Exception_Create;
 
 implementation
 
@@ -68,6 +68,7 @@ var
   Exceptions : PHandlers;
   Maximum	 : word;
   Index		 : word;
+  SegBase    : word;
 
 const
   Handler_Size = Sizeof(THandler);
@@ -97,17 +98,12 @@ begin
       WriteLn('no ' + ExceptStr);
       exit;
     end;
-    WriteLn(ExceptStr, ' #', Error, ' at ', HexPtr(Address));
+    Write(ExceptStr, ' #', Error);
+    if Assigned(Address) then Write(' at ', HexPtr(Address));
     if Exception.Message <> '' then
-      WriteLn(Exception.Message);
+      Write(', ', Exception.Message);
+    WriteLn;
   end;
-end;
-
-procedure Exception_Clear;
-begin
-  Exception.Error := 0;
-  Exception.Address := nil;
-  Exception.Message := '';
 end;
 
 procedure Exception_Set(Address : Pointer; Error : integer; const Message : String);
@@ -117,11 +113,15 @@ begin
   Exception.Message := Message;
 end;
 
+procedure Exception_Clear;
+begin
+  Exception_Set(nil, 0, '');
+end;
+
+
 procedure Exception_Die(Address : Pointer; Error : integer; const Message : String);
 begin
-  Exception.Error := Error;
-  Exception.Address := Address;
-  Exception.Message := Message;
+  Exception_Set(Address, Error, Message);
   Exception_Display;
   Halt(Error);
 end;
@@ -131,14 +131,12 @@ begin
   with Exception do begin
       if Error = 0 then Error:=ExitCode;
       if Error = 0 then Error := 1;
-      Address:=nil;
       if Message = '' then
         Message:='fatal exception';
       Exception_Display;
       Halt(Error);
     end;
 end;
-
 
 procedure Finalize; far;
 begin
@@ -160,6 +158,7 @@ begin
   Exceptions:=nil;
   Maximum:=0;
   Index:=0;
+  SegBase:=PrefixSeg;
   Exception_Memory(64);
 end;
 
@@ -220,16 +219,16 @@ asm
   les		di, Exceptions
   add		di, ax
   { Get address of exception proc/func }
-  mov		ax, [ss:bp+8]
-  mov		dx, [ss:bp+10]
+  mov		ax, [bp+8]
+  mov		dx, [bp+10]
   { Save jump address of exception proc/func }
   add		ax, Jump_Offset
   mov		[es:di], ax
   mov		[es:di + 2], dx
-  { Save Stack Pointers }
-  mov		bx, [ss:bp]
-  mov		cx, [ss:bx]
-  mov		[es:di + 4], cx
+  { Save Stack Pointer }
+  mov		bp, [bp]
+  mov		bp, [bp]
+  mov		[es:di + 4], bp
   pop		bp
 end;
 
@@ -242,7 +241,7 @@ asm
   dec		Index
 end;
 
-procedure Raise; assembler;
+procedure Exception_Create; assembler;
 asm
   mov   	ax, Index
   test		ax, ax
@@ -262,18 +261,29 @@ asm
   jmp dword ptr [es:di]
 end;
 
+procedure Raise;
+begin
+  if Exception.Error=0 then
+    Exception.Error:=1;
+  if Exception.Message='' then
+    Exception.Message:='general exception';
+  Exception_Create;
+end;
+
 procedure RaiseError(Error : integer; Message : String);
 begin
+  Exception.Address:=nil;
   Exception.Error:=Error;
   Exception.Message:=Message;
-  Exception.Address:=nil;
-  raise;
+  Exception_Create;
 end;
 
 function FailProc(Proc : TProcedure) : integer;
 begin
   if Exception.Error = 0 then
     Exception.Error:=1;
+  if Exception.Message='' then
+    Exception.Message:='general exception';
   FailProc:=Exception.Error;
 end;
 
