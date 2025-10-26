@@ -5,6 +5,7 @@
 
   History:
 
+  2025-10-26 Jerome Shidel, Minor code improvements.
   2025-10-24 Jerome Shidel, Added Attempt function.
   2025-10-24 Jerome Shidel, Seems to be working now.
   2025-10-23 Jerome Shidel, Initial highly experimental version.
